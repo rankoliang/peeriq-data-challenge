@@ -13,6 +13,7 @@ from src.transform_data import (
     high_credit,
     round_up_cents,
     round_up_cents_cols,
+    transform_data,
 )
 
 
@@ -68,7 +69,7 @@ class TestKnownPurpose(TestTransform):
 
     @pytest.fixture
     def data(self):
-        return [(0, "mortgage"), (1, "other"), (2, "Other")]
+        return [(0, "credit_card"), (1, "other"), (2, "Other")]
 
     def test_filters_other(self, df):
         assert known_purpose(df).filter(df["purpose"] == "other").count() == 0
@@ -79,7 +80,7 @@ class TestKnownPurpose(TestTransform):
     def test_only_filters_other(self, df, spark, schema):
         assert (
             known_purpose(df).collect()
-            == spark.createDataFrame([(0, "mortgage")], schema).collect()
+            == spark.createDataFrame([(0, "credit_card")], schema).collect()
         )
 
 
@@ -171,4 +172,36 @@ class TestRoundUpCentsCols(TestTransform):
         assert (
             round_up_cents_cols(df, ["amount", "other_amount"], 2).collect()
             != df.collect()
+        )
+
+
+class TestTransformData(TestTransform):
+    @pytest.fixture(scope="class")
+    def schema(self):
+        return StructType(
+            [
+                StructField("id", IntegerType(), False),
+                StructField("amount", DoubleType(), True),
+                StructField("other_amount", DoubleType(), True),
+                StructField("loan_status", StringType(), True),
+                StructField("purpose", StringType(), True),
+                StructField("last_fico_range_low", IntegerType(), True),
+            ]
+        )
+
+    @pytest.fixture
+    def data(self):
+        return [
+            (0, 123.1234, 10.016, "Charged Off", "credit_card", 700),
+            (1, 100.0, 25.00, "Fully Paid", "other", 700),
+            (2, 25.00, 100.0, "Fully Paid", "credit_card", 600),
+            (3, 10.016, 123.1234, "Fully Paid", "credit_card", 750),
+        ]
+
+    def test_transform_data(self, df, spark, schema):
+        assert (
+            transform_data(df, ["amount", "other_amount"]).collect()
+            == spark.createDataFrame(
+                [(3, 10.02, 123.13, "Fully Paid", "credit_card", 750)], schema
+            ).collect()
         )

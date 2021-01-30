@@ -53,3 +53,15 @@ def round_up_cents_cols(df: DataFrame, columns: list, precision: int = 2) -> Dat
     return reduce(
         lambda result, column: round_up_cents(result, column, precision), columns, df
     )
+
+
+def transform_data(df: DataFrame, columns):
+    """
+    Applies all of the transforms in this module on the dataframe
+
+        Parameters:
+            df (DataFrame): A pyspark DataFrame
+            columns (str): The columns that should be rounded up
+    """
+    df = df.transform(good_standing).transform(known_purpose).transform(high_credit)
+    return round_up_cents_cols(df, columns)
