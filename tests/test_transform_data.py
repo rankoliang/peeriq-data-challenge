@@ -7,7 +7,13 @@ from pyspark.sql.types import (
     IntegerType,
     StringType,
 )
-from src.transform_data import good_standing, known_purpose, high_credit, round_up_cents
+from src.transform_data import (
+    good_standing,
+    known_purpose,
+    high_credit,
+    round_up_cents,
+    round_up_cents_cols,
+)
 
 
 @pytest.fixture(scope="session")
@@ -125,3 +131,44 @@ class TestRoundUpCents(TestTransform):
 
     def test_rounds_up_cents_changed(self, df, spark, schema):
         assert round_up_cents(df, "amount", 2).collect() != df.collect()
+
+
+class TestRoundUpCentsCols(TestTransform):
+    @pytest.fixture(scope="class")
+    def schema(self):
+        return StructType(
+            [
+                StructField("id", IntegerType(), False),
+                StructField("amount", DoubleType(), True),
+                StructField("other_amount", DoubleType(), True),
+            ]
+        )
+
+    @pytest.fixture
+    def data(self):
+        return [
+            (0, 123.1234, 10.016),
+            (1, 100.0, 25.00),
+            (2, 25.00, 100.0),
+            (3, 10.016, 123.1234),
+        ]
+
+    def test_rounds_up_cents_cols(self, df, spark, schema):
+        assert (
+            round_up_cents_cols(df, ["amount", "other_amount"], 2).collect()
+            == spark.createDataFrame(
+                [
+                    (0, 123.13, 10.02),
+                    (1, 100.00, 25.00),
+                    (2, 25.00, 100.00),
+                    (3, 10.02, 123.13),
+                ],
+                schema,
+            ).collect()
+        )
+
+    def test_rounds_up_cents_cols_changed(self, df, spark, schema):
+        assert (
+            round_up_cents_cols(df, ["amount", "other_amount"], 2).collect()
+            != df.collect()
+        )
