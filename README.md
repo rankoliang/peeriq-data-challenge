@@ -14,5 +14,5 @@ source venv/bin/activate
 ```
 Finally, install the python dependencies using
 ```
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
