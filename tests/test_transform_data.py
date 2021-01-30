@@ -1,6 +1,6 @@
 import pytest
 from pyspark.sql import SparkSession
-from src.transform_data import good_standing, known_purpose
+from src.transform_data import good_standing, known_purpose, high_credit
 
 
 @pytest.fixture(scope="session")
@@ -59,4 +59,27 @@ class TestKnownPurpose:
         assert (
             known_purpose(df).collect()
             == spark.createDataFrame([(0, "mortgage")], schema).collect()
+        )
+
+
+class TestHighCredit:
+    @pytest.fixture(scope="class")
+    def schema(self):
+        return ["id", "last_fico_range_low"]
+
+    @pytest.fixture
+    def data(self):
+        return [(0, 650), (1, 750), (2, 700), (3, 600)]
+
+    @pytest.fixture
+    def df(self, spark, data, schema):
+        return spark.createDataFrame(data, schema)
+
+    def test_filters_low_credit(self, df):
+        assert high_credit(df).filter(df["last_fico_range_low"] < 700).count() == 0
+
+    def test_only_filters_low_credit(self, df, spark, schema):
+        assert (
+            high_credit(df).collect()
+            == spark.createDataFrame([(1, 750), (2, 700)], schema).collect()
         )

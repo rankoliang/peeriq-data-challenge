@@ -9,3 +9,7 @@ def good_standing(df: DataFrame) -> DataFrame:
 
 def known_purpose(df: DataFrame) -> DataFrame:
     return df.filter(lower(df.purpose) != "other")
+
+
+def high_credit(df: DataFrame) -> DataFrame:
+    return df.filter(df.last_fico_range_low > 700)
