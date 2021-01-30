@@ -1,6 +1,13 @@
 import pytest
 from pyspark.sql import SparkSession
-from src.transform_data import good_standing, known_purpose, high_credit
+from pyspark.sql.types import (
+    StructField,
+    StructType,
+    DoubleType,
+    IntegerType,
+    StringType,
+)
+from src.transform_data import good_standing, known_purpose, high_credit, round_up_cents
 
 
 @pytest.fixture(scope="session")
@@ -10,18 +17,25 @@ def spark():
     spark.stop()
 
 
-class TestGoodStanding:
+class TestTransform:
+    @pytest.fixture
+    def df(self, spark, data, schema):
+        return spark.createDataFrame(data, schema)
+
+
+class TestGoodStanding(TestTransform):
     @pytest.fixture(scope="class")
     def schema(self):
-        return ["id", "loan_status"]
+        return StructType(
+            [
+                StructField("id", IntegerType(), False),
+                StructField("loan_status", StringType(), True),
+            ]
+        )
 
     @pytest.fixture
     def data(self):
         return [(0, "Charged Off"), (1, "Fully Paid"), (2, "charged off")]
-
-    @pytest.fixture
-    def df(self, spark, data, schema):
-        return spark.createDataFrame(data, schema)
 
     def test_filters_charged_off(self, df):
         assert good_standing(df).filter(df["loan_status"] == "Charged Off").count() == 0
@@ -36,18 +50,19 @@ class TestGoodStanding:
         assert good_standing(df).filter(df["loan_status"] == "charged off").count() == 0
 
 
-class TestKnownPurpose:
+class TestKnownPurpose(TestTransform):
     @pytest.fixture(scope="class")
     def schema(self):
-        return ["id", "purpose"]
+        return StructType(
+            [
+                StructField("id", IntegerType(), False),
+                StructField("purpose", StringType(), True),
+            ]
+        )
 
     @pytest.fixture
     def data(self):
         return [(0, "mortgage"), (1, "other"), (2, "Other")]
-
-    @pytest.fixture
-    def df(self, spark, data, schema):
-        return spark.createDataFrame(data, schema)
 
     def test_filters_other(self, df):
         assert known_purpose(df).filter(df["purpose"] == "other").count() == 0
@@ -62,18 +77,19 @@ class TestKnownPurpose:
         )
 
 
-class TestHighCredit:
+class TestHighCredit(TestTransform):
     @pytest.fixture(scope="class")
     def schema(self):
-        return ["id", "last_fico_range_low"]
+        return StructType(
+            [
+                StructField("id", IntegerType(), False),
+                StructField("last_fico_range_low", IntegerType(), True),
+            ]
+        )
 
     @pytest.fixture
     def data(self):
         return [(0, 650), (1, 750), (2, 700), (3, 600)]
-
-    @pytest.fixture
-    def df(self, spark, data, schema):
-        return spark.createDataFrame(data, schema)
 
     def test_filters_low_credit(self, df):
         assert high_credit(df).filter(df["last_fico_range_low"] < 700).count() == 0
@@ -83,3 +99,29 @@ class TestHighCredit:
             high_credit(df).collect()
             == spark.createDataFrame([(1, 750), (2, 700)], schema).collect()
         )
+
+
+class TestRoundUpCents(TestTransform):
+    @pytest.fixture(scope="class")
+    def schema(self):
+        return StructType(
+            [
+                StructField("id", IntegerType(), False),
+                StructField("amount", DoubleType(), True),
+            ]
+        )
+
+    @pytest.fixture
+    def data(self):
+        return [(0, 123.1234), (1, 100.0), (2, 25.00), (3, 10.016)]
+
+    def test_rounds_up_cents(self, df, spark, schema):
+        assert (
+            round_up_cents(df, "amount", 2).collect()
+            == spark.createDataFrame(
+                [(0, 123.13), (1, 100.00), (2, 25.00), (3, 10.02)], schema
+            ).collect()
+        )
+
+    def test_rounds_up_cents_changed(self, df, spark, schema):
+        assert round_up_cents(df, "amount", 2).collect() != df.collect()
