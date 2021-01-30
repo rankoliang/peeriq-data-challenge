@@ -16,3 +16,10 @@ Finally, install the python dependencies using
 ```
 pip3 install -r requirements.txt
 ```
+
+## Tests
+
+To run the test suite, run
+```
+python3 -m pytest
+```
