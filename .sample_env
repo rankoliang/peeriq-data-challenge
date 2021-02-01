@@ -1,6 +1,0 @@
-SERVER="localhost"
-PORT="5432"
-DB_NAME="peeriq"
-DB_USER="postgres"
-DB_PASSWORD="password"
-TABLE_NAME="loans"

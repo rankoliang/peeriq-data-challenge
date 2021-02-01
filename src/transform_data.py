@@ -2,9 +2,6 @@
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import lower, ceil
 from functools import reduce
-from .csv_schema import csv_schema, amount_cols
-from .connect import connect
-import os
 
 
 def good_standing(df: DataFrame) -> DataFrame:
@@ -66,31 +63,9 @@ def transform_data(df: DataFrame, columns):
             df (DataFrame): A pyspark DataFrame
             columns (str): The columns that should be rounded up
     """
-    df = df.transform(good_standing).transform(known_purpose).transform(high_credit)
+    df = pipe(df, good_standing, known_purpose, high_credit)
     return round_up_cents_cols(df, columns)
 
 
-if __name__ == "__main__":
-    current_path = os.path.dirname(os.path.realpath(__file__))
-    with (
-        SparkSession.builder.appName("Database")
-        .config(
-            "spark.jars", os.path.join(current_path, "../jars/postgresql-42.2.18.jar")
-        )
-        .master("local")
-        .getOrCreate()
-    ) as spark:
-        if "S3_BUCKET_FILE" in os.environ:
-            loan_file = os.environ["S3_BUCKET_FILE"]
-        else:
-            loan_file = os.path.join(current_path, "../data/Sample_Data.csv")
-
-        loans = (
-            spark.read.schema(csv_schema)
-            .load(loan_file, format="csv", header=True)
-            .cache()
-        )
-
-        loans = transform_data(loans, amount_cols)
-
-        connect(loans.write.mode("append")).save()
+def pipe(df, *funcs):
+    return reduce(lambda dataframe, func: func(dataframe), funcs, df)
