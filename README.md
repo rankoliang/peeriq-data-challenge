@@ -1,5 +1,11 @@
 # PeerIQ Data Challenge
 
+## Background
+
+The goal of this program is to read csv fies from an s3 bucket and to store data
+into a postgres database. Monetary amounts are rounded up two digits after the decimal.
+Charged off `loan_status` fields, other `purpose` fields, and credit scores less than 700 are filtered out
+
 ## Getting Started
 
 These instructions will assume you are using a unix based OS and have python
@@ -34,6 +40,9 @@ with all of the required credentials and security permissions set.
 You can configure this by clicking on the `VPC Security Groups`
 link on your database page and editing the `Inbound rules`.
 Allow any ips of the environments you are running.
+
+Basic instructions to set this up are here:
+https://aws.amazon.com/getting-started/tutorials/create-connect-postgresql-db/
 
 #### Steps
 
