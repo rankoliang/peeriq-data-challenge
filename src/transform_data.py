@@ -2,6 +2,8 @@
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import lower, ceil
 from functools import reduce
+from .csv_schema import csv_schema, amount_cols
+from .connect import connect
 
 
 def good_standing(df: DataFrame) -> DataFrame:
@@ -26,7 +28,7 @@ def high_credit(df: DataFrame, score: int = 700) -> DataFrame:
             df (DataFrame): A pyspark DataFrame
             score (int): minimum acceptable fico score
     """
-    return df.filter(df.last_fico_range_low >= score)
+    return df.filter(df.fico_range_low >= score)
 
 
 def round_up_cents(df: DataFrame, column: str, precision: int = 2) -> DataFrame:
@@ -65,3 +67,7 @@ def transform_data(df: DataFrame, columns):
     """
     df = df.transform(good_standing).transform(known_purpose).transform(high_credit)
     return round_up_cents_cols(df, columns)
+
+
+if __name__ == "__main__":
+    pass

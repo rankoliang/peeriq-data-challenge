@@ -90,7 +90,7 @@ class TestHighCredit(TestTransform):
         return StructType(
             [
                 StructField("id", IntegerType(), False),
-                StructField("last_fico_range_low", IntegerType(), True),
+                StructField("fico_range_low", IntegerType(), True),
             ]
         )
 
@@ -99,7 +99,7 @@ class TestHighCredit(TestTransform):
         return [(0, 650), (1, 750), (2, 700), (3, 600)]
 
     def test_filters_low_credit(self, df):
-        assert high_credit(df).filter(df["last_fico_range_low"] < 700).count() == 0
+        assert high_credit(df).filter(df["fico_range_low"] < 700).count() == 0
 
     def test_only_filters_low_credit(self, df, spark, schema):
         assert (
@@ -185,7 +185,7 @@ class TestTransformData(TestTransform):
                 StructField("other_amount", DoubleType(), True),
                 StructField("loan_status", StringType(), True),
                 StructField("purpose", StringType(), True),
-                StructField("last_fico_range_low", IntegerType(), True),
+                StructField("fico_range_low", IntegerType(), True),
             ]
         )
 
