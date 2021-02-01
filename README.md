@@ -3,7 +3,7 @@
 ## Getting Started
 
 These instructions will assume you are using a unix based OS and have python
-installed on your system.
+installed on your system. The python version used is 3.7.9.
 If this is your first time running this, create a virutal environment using
 
 ```
